@@ -1,10 +1,12 @@
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using RajiNet.Models;
+using RajiNet.ViewModels;
 
 namespace RajiNet.Repositories 
 {
-    public class AlbumRepository : GenericRepository<Album>
+    public class AlbumRepository : GenericRepository<Album, AlbumVM>, IRepository<Album, AlbumVM> 
     {
         public AlbumRepository(RajiNetDbContext _db) 
         {
@@ -13,7 +15,20 @@ namespace RajiNet.Repositories
         }
 
 
-        public override object GetAll() {
+        public override List<AlbumVM> GetAll() {
+            return FetchAndPopulateAll()
+                .ToList();
+        }
+
+        public override AlbumVM GetById(int id) {
+            return FetchAndPopulateAll()
+                .Where(album => album.Id == id)
+                .FirstOrDefault();
+        }
+
+
+        private IQueryable<AlbumVM> FetchAndPopulateAll() 
+        {
             return TModel
                 .Include(album => album.AlbumArtist)
                     .ThenInclude(aa => aa.Artist)
@@ -23,45 +38,41 @@ namespace RajiNet.Repositories
                 .Select(album => populateAlbum(album));
         }
 
-        public override object GetById(int id) {
-            return TModel
-                .Where(album => album.Id == id)
-                .Include(album => album.AlbumArtist)
-                    .ThenInclude(aa => aa.Artist)
-                .Include(Album => Album.Songs)
-                    .ThenInclude(song => song.ArtistSong)
-                    .ThenInclude(artSong => artSong.Artist)
-                .Select(album => populateAlbum(album))
-                .FirstOrDefault();
-        }
 
-
-        private object populateAlbum(Album album) {
-            return new {
-                album.Id,
-                album.Image,
-                album.Name,
-                album.ReleaseDate,
+        private AlbumVM populateAlbum(Album album) {
+            return new AlbumVM 
+            {
+                Id=album.Id,
+                Image=album.Image,
+                Name=album.Name,
+                ReleaseDate=album.ReleaseDate,
                 Artists=album.AlbumArtist
                     .Select(aa => aa.Artist)
-                    .Select(art => new { 
-                        art.Id, 
-                        art.Image, 
-                        art.Name, art.Biography 
-                    }),
+                    .Select(art => new AlbumArtistVM 
+                    { 
+                        Id=art.Id, 
+                        Image=art.Image, 
+                        Name=art.Name,
+                        Biography=art.Biography
+                    })
+                    .ToList(),
                 Songs=album.Songs
-                    .Select(song => new {
-                        song.Id,
-                        song.Name,
-                        song.FileUrl,
+                    .Select(song => new AlbumSongVM 
+                    {
+                        Id=song.Id,
+                        Name=song.Name,
+                        FileUrl=song.FileUrl,
                         Artists=song.ArtistSong
                             .Select(artSong => artSong.Artist)
-                            .Select(artist => new {
-                                artist.Id,
-                                artist.Name,
-                                artist.Image,
+                            .Select(artist => new AlbumSongArtistVM 
+                            {
+                                Id=artist.Id,
+                                Name=artist.Name,
+                                Image=artist.Image,
                             })
-                    }),
+                            .ToList()
+                    })
+                    .ToList(),
             };
         }
     }

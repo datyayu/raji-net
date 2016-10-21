@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using RajiNet.Models;
+using RajiNet.ViewModels;
 
 namespace RajiNet.Repositories
 {
@@ -6,10 +8,10 @@ namespace RajiNet.Repositories
     {
         public static void InjectRepositories(IServiceCollection services)
         {
-            services.AddScoped<AlbumRepository>();
-            services.AddScoped<ArtistRepository>();
-            services.AddScoped<SeriesRepository>();
-            services.AddScoped<SongRepository>();
+            services.AddTransient<IRepository<Album, AlbumVM>, AlbumRepository>();
+            services.AddTransient<IRepository<Artist, ArtistVM>, ArtistRepository>();
+            services.AddTransient<IRepository<Series, SeriesVM>, SeriesRepository>();
+            services.AddTransient<IRepository<Song, SongVM>, SongRepository>();
         }
     }
 }

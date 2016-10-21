@@ -28,21 +28,28 @@ namespace RajiNet
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Add framework services.            
+            // Add DBContext    
             services.AddDbContext<RajiNetDbContext>(options => options.UseSqlite("Filename=./development.db"));
-            services.AddMvc().AddJsonOptions(opt =>
-            {
-                var resolver = opt.SerializerSettings.ContractResolver;
-                if (resolver != null)
+
+            // Add mvc stuff.
+            services.AddMvc()
+                // Setup camelCase as default format for json.
+                .AddJsonOptions(opt =>
                 {
-                    var res = resolver as DefaultContractResolver;
-                    res.NamingStrategy = null;  // <<!-- this removes the camelcasing
-                }
+                    var resolver = opt.SerializerSettings.ContractResolver;
+                    
+                    if (resolver != null)
+                    {
+                        var res = resolver as DefaultContractResolver;
+                        res.NamingStrategy = null;
+                    }
 
-                opt.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-            });
+                    opt.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                });
 
-            RepositoriesConfiguration.InjectRepositories(services);            
+            services.AddCors();
+
+            RepositoriesConfiguration.InjectRepositories(services);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -51,6 +58,14 @@ namespace RajiNet
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
             app.UseMvc();
+
+            // Setup cors
+            // app.UseCors(builder => {
+            //     builder
+            //         .AllowAnyOrigin()
+            //         .AllowAnyHeader()
+            //         .AllowAnyMethod();
+            // });
 
 
             if (env.IsDevelopment())

@@ -1,10 +1,12 @@
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using RajiNet.Models;
+using RajiNet.ViewModels;
 
 namespace RajiNet.Repositories 
 {
-    public class ArtistRepository : GenericRepository<Artist>
+    public class ArtistRepository : GenericRepository<Artist, ArtistVM>, IRepository<Artist, ArtistVM>
     {
         public ArtistRepository(RajiNetDbContext _db) 
         {
@@ -12,41 +14,44 @@ namespace RajiNet.Repositories
             this.TModel = db.Set<Artist>();
         }
 
-        public override object GetAll()
+        public override List<ArtistVM> GetAll()
         {
-            return TModel
-                .Include(artist => artist.AlbumArtist)
-                    .ThenInclude(aa => aa.Album)
-                .Select(artist => populateArtist(artist))
+            return FetchAndPopulateAll()
                 .ToList();
         }
 
-        public override object GetById(int id) 
+        public override ArtistVM GetById(int id) 
         {
-            return TModel
+            return FetchAndPopulateAll()
                 .Where(artist => artist.Id == id)
-                .Include(artist => artist.AlbumArtist)
-                    .ThenInclude(aa => aa.Album)
-                .Select(artist => populateArtist(artist))
                 .FirstOrDefault();
         }
 
-        private object populateArtist(Artist artist)
+        private IQueryable<ArtistVM> FetchAndPopulateAll() 
         {
-            return new {
-                artist.Id,
-                artist.Name,
-                artist.Image,
-                artist.Biography,
-                Albums = artist.AlbumArtist
+            return TModel
+                .Include(artist => artist.AlbumArtist)
+                    .ThenInclude(aa => aa.Album)
+                .Select(artist => populateArtist(artist));
+        }
+
+        private ArtistVM populateArtist(Artist artist)
+        {
+            return new ArtistVM {
+                Id=artist.Id,
+                Name=artist.Name,
+                Image=artist.Image,
+                Biography=artist.Biography,
+                Albums=artist.AlbumArtist
                     .Select(aa => aa.Album)
-                    .Select(album => new {
-                        album.Id,
-                        album.Name,
-                        album.Image,
-                        album.ReleaseDate,
-                        album.SingleType,
+                    .Select(album => new ArtistAlbumVM {
+                        Id=album.Id,
+                        Name=album.Name,
+                        Image=album.Image,
+                        ReleaseDate=album.ReleaseDate,
+                        SingleType=album.SingleType,
                     })
+                    .ToList(),
             };
         }
     }
